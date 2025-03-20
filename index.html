@@ -220,6 +220,53 @@
 				gap: 5px;
 			}
 		}
+
+		.filter-buttons {
+			display: flex;
+			gap: 8px;
+			margin-bottom: 15px;
+			flex-wrap: wrap;
+		}
+
+		.filter-btn {
+			flex: 1;
+			min-width: 100px;
+			padding: 8px;
+			font-size: 12px;
+			background-color: var(--secondary-color);
+		}
+
+		.filter-btn.active {
+			background-color: var(--primary-color);
+			border: 1px solid var(--text-color);
+		}
+
+		@media (max-width: 480px) {
+			.filter-buttons {
+				gap: 5px;
+			}
+
+			.filter-btn {
+				min-width: calc(50% - 5px);
+				padding: 10px 5px;
+			}
+		}
+
+		/* Стили для input с автокомплитом */
+		input[type="text"] {
+			width: 100%;
+			padding: 12px;
+			background-color: rgba(0, 0, 0, 0.6);
+			border: 1px solid var(--primary-color);
+			color: var(--text-color);
+			border-radius: 5px;
+			font-size: 16px;
+		}
+
+		input[type="text"]:focus {
+			outline: none;
+			border-color: var(--text-color);
+		}
 	</style>
 </head>
 
@@ -228,12 +275,27 @@
 		<h1>Калькулятор респауна L2</h1>
 		<div class="form-group">
 			<label for="hero">Выберите героя:</label>
-			<select id="hero">
-				<option value="">Выберите...</option>
-				<option value="black_lily">Черная лилия</option>
-				<option value="kruma">Крума</option>
-				<option value="valakas">Валакас</option>
-			</select>
+			<input type="text" id="hero" list="hero-list" autocomplete="off" oninput="filterHeroes(this.value)">
+			<datalist id="hero-list">
+				<option value="Черная лилия" data-id="black_lily">
+				<option value="Андарас" data-id="antharas">
+				<option value="Базил" data-id="basil">
+				<option value="Баллак" data-id="ballack">
+				<option value="Бальбо" data-id="balbo">
+				<option value="Брека" data-id="breka">
+				<option value="Буря" data-id="storm">
+				<option value="Гарет" data-id="garet">
+				<option value="Зараженный Крума" data-id="infected_kruma">
+				<option value="Зеркало забвения" data-id="mirror">
+				<option value="Кабрио" data-id="cabrio">
+				<option value="Каменук" data-id="kamenuk">
+				<option value="Катан" data-id="katan">
+				<option value="Кельсус" data-id="kelsus">
+				<option value="Корун" data-id="korun">
+				<option value="Ландор" data-id="landor">
+				<option value="Крума" data-id="kruma">
+				<option value="Валакас" data-id="valakas">
+			</datalist>
 		</div>
 		<div class="form-group">
 			<label for="deathTime">Время смерти:</label>
@@ -251,6 +313,12 @@
 
 		<div class="history-container">
 			<h2>История респаунов</h2>
+			<div class="filter-buttons">
+				<button class="filter-btn" data-count="3">3 ближайших</button>
+				<button class="filter-btn" data-count="5">5 ближайших</button>
+				<button class="filter-btn" data-count="10">10 ближайших</button>
+				<button class="filter-btn active" data-count="0">Все</button>
+			</div>
 			<div id="respawnHistory" class="history-list"></div>
 		</div>
 	</div>
@@ -258,19 +326,82 @@
 	<script>
 		const respawnTimes = {
 			'black_lily': 4,
+			'antharas': 12,
+			'basil': 3,
+			'ballack': 8,
+			'balbo': 5,
+			'breka': 6,
+			'storm': 4,
+			'garet': 7,
+			'infected_kruma': 9,
+			'mirror': 15,
+			'cabrio': 12,
+			'kamenuk': 6,
+			'katan': 8,
+			'kelsus': 10,
+			'korun': 5,
+			'landor': 7,
 			'kruma': 6,
 			'valakas': 8
 		};
 
-		// Загрузка истории при запуске
-		document.addEventListener('DOMContentLoaded', loadHistory);
+		let currentFilter = 0; // Глобальная переменная для хранения текущего фильтра
+
+		// Создаем объект для хранения соответствия имен и id
+		const heroesMap = {
+			'Черная лилия': 'black_lily',
+			'Андарас': 'antharas',
+			'Базил': 'basil',
+			'Баллак': 'ballack',
+			'Бальбо': 'balbo',
+			'Брека': 'breka',
+			'Буря': 'storm',
+			'Гарет': 'garet',
+			'Зараженный Крума': 'infected_kruma',
+			'Зеркало забвения': 'mirror',
+			'Кабрио': 'cabrio',
+			'Каменук': 'kamenuk',
+			'Катан': 'katan',
+			'Кельсус': 'kelsus',
+			'Корун': 'korun',
+			'Ландор': 'landor',
+			'Крума': 'kruma',
+			'Валакас': 'valakas'
+		};
+
+		function filterHeroes(value) {
+			const input = document.getElementById('hero');
+			const searchTerm = value.toLowerCase().trim();
+
+			if (!searchTerm) return;
+
+			// Получаем все имена героев
+			const heroNames = Object.keys(heroesMap);
+
+			// Фильтруем героев по введенному значению, игнорируя регистр
+			const matches = heroNames.filter(name =>
+				name.toLowerCase().startsWith(searchTerm)
+			);
+
+			// Если есть только одно совпадение, даже неполное
+			if (matches.length === 1) {
+				const match = matches[0];
+				input.value = match;
+				setTimeout(() => {
+					input.blur();
+				}, 100);
+			}
+		}
 
 		function calculateRespawn() {
-			const heroSelect = document.getElementById('hero');
+			const heroInput = document.getElementById('hero');
 			const deathTimeInput = document.getElementById('deathTime');
 			const resultDiv = document.getElementById('result');
 
-			if (!heroSelect.value || !deathTimeInput.value) {
+			const heroName = heroInput.value;
+			const heroId = heroesMap[heroName];
+
+			if (!heroId || !deathTimeInput.value) {
 				resultDiv.textContent = 'Пожалуйста, выберите героя и время смерти';
 				return;
 			}
@@ -280,12 +411,12 @@
 			deathTime.setHours(parseInt(hours));
 			deathTime.setMinutes(parseInt(minutes));
 
-			const respawnHours = respawnTimes[heroSelect.value];
+			const respawnHours = respawnTimes[heroId];
 			const respawnTime = new Date(deathTime.getTime() + respawnHours * 60 * 60 * 1000);
 
 			const respawnData = {
-				bossName: heroSelect.options[heroSelect.selectedIndex].text,
-				bossId: heroSelect.value,
+				bossName: heroName,
+				bossId: heroId,
 				deathTime: deathTime.toISOString(),
 				respawnTime: respawnTime.toISOString(),
 				timestamp: new Date().getTime()
@@ -295,14 +426,17 @@
 			loadHistory();
 
 			resultDiv.textContent = `Респаун ${respawnData.bossName} произойдет в ${respawnTime.getHours().toString().padStart(2, '0')}:${respawnTime.getMinutes().toString().padStart(2, '0')}`;
+
+			// Очищаем оба поля
+			heroInput.value = '';
+			deathTimeInput.value = '';
 		}
 
 		function saveRespawn(respawnData) {
 			let history = JSON.parse(localStorage.getItem('respawnHistory') || '[]');
-			// Удаляем предыдущую запись о том же боссе, если она есть
-			history = history.filter(item => item.bossId !== respawnData.bossId);
-			// Добавляем новую запись
+			// Просто добавляем новую запись
 			history.push(respawnData);
+
 			// Сортируем по времени респауна
 			history.sort((a, b) => new Date(a.respawnTime) - new Date(b.respawnTime));
 			localStorage.setItem('respawnHistory', JSON.stringify(history));
@@ -310,7 +444,7 @@
 
 		function loadHistory() {
 			const historyDiv = document.getElementById('respawnHistory');
-			const history = JSON.parse(localStorage.getItem('respawnHistory') || '[]');
+			let history = JSON.parse(localStorage.getItem('respawnHistory') || '[]');
 
 			historyDiv.innerHTML = '';
 
@@ -319,6 +453,20 @@
 				return;
 			}
 
+			// Фильтруем только будущие респауны
+			const now = new Date();
+			history = history.filter(item => new Date(item.respawnTime) > now);
+
+			// Сортируем по времени респауна
+			history.sort((a, b) => new Date(a.respawnTime) - new Date(b.respawnTime));
+
+			// Проверяем значение фильтра перед применением
+			console.log('Current filter:', currentFilter); // Для отладки
+			if (currentFilter > 0 && history.length > currentFilter) {
+				history = history.slice(0, currentFilter);
+			}
+
+			// Выводим все записи
 			history.forEach(item => {
 				const deathTime = new Date(item.deathTime);
 				const respawnTime = new Date(item.respawnTime);
@@ -367,6 +515,39 @@
 			const newMinutes = date.getMinutes().toString().padStart(2, '0');
 			timeInput.value = `${newHours}:${newMinutes}`;
 		}
+
+		function filterHistory(count) {
+			console.log('Setting filter to:', count); // Для отладки
+			currentFilter = count;
+			loadHistory();
+
+			// Обновляем активную кнопку
+			document.querySelectorAll('.filter-btn').forEach(btn => {
+				if (parseInt(btn.dataset.count) === count) {
+					btn.classList.add('active');
+				} else {
+					btn.classList.remove('active');
+				}
+			});
+		}
+
+		// Обновляем инициализацию при загрузке страницы
+		document.addEventListener('DOMContentLoaded', function () {
+			// Устанавливаем начальное значение фильтра как 0 (показать все)
+			window.currentFilter = 0;
+
+			// Добавляем обработчики для кнопок
+			document.querySelectorAll('.filter-btn').forEach(btn => {
+				btn.addEventListener('click', function () {
+					const count = parseInt(this.dataset.count);
+					console.log('Button clicked, count:', count); // Для отладки
+					filterHistory(count);
+				});
+			});
+
+			// Загружаем историю при старте
+			loadHistory();
+		});
 	</script>
 </body>
 
