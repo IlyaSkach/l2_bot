@@ -267,6 +267,80 @@
 			outline: none;
 			border-color: var(--text-color);
 		}
+
+		/* Стили для datalist (список автозаполнения) */
+		datalist {
+			position: absolute;
+			max-height: 200px;
+			overflow-y: auto;
+			width: 100%;
+			background-color: var(--bg-color);
+			border: 1px solid var(--primary-color);
+			border-radius: 5px;
+			margin-top: 5px;
+		}
+
+		@media (max-width: 480px) {
+
+			/* Ограничиваем высоту списка на мобильных устройствах */
+			datalist {
+				max-height: 150px;
+				overflow-y: auto;
+			}
+
+			/* Стили для опций в списке */
+			option {
+				padding: 10px;
+				background-color: rgba(0, 0, 0, 0.8);
+				color: var(--text-color);
+				border-bottom: 1px solid var(--primary-color);
+			}
+
+			option:last-child {
+				border-bottom: none;
+			}
+		}
+
+		.custom-select {
+			position: relative;
+			width: 100%;
+		}
+
+		.suggestions-list {
+			display: none;
+			position: absolute;
+			top: 100%;
+			left: 0;
+			right: 0;
+			max-height: 200px;
+			overflow-y: auto;
+			background-color: var(--bg-color);
+			border: 1px solid var(--primary-color);
+			border-radius: 5px;
+			margin-top: 5px;
+			z-index: 1000;
+		}
+
+		.suggestion-item {
+			padding: 10px;
+			cursor: pointer;
+			color: var(--text-color);
+			border-bottom: 1px solid var(--primary-color);
+		}
+
+		.suggestion-item:last-child {
+			border-bottom: none;
+		}
+
+		.suggestion-item:hover {
+			background-color: var(--secondary-color);
+		}
+
+		@media (max-width: 480px) {
+			.suggestions-list {
+				max-height: 150px;
+			}
+		}
 	</style>
 </head>
 
@@ -275,27 +349,10 @@
 		<h1>Калькулятор респауна L2</h1>
 		<div class="form-group">
 			<label for="hero">Выберите героя:</label>
-			<input type="text" id="hero" list="hero-list" autocomplete="off" oninput="filterHeroes(this.value)">
-			<datalist id="hero-list">
-				<option value="Черная лилия" data-id="black_lily">
-				<option value="Андарас" data-id="antharas">
-				<option value="Базил" data-id="basil">
-				<option value="Баллак" data-id="ballack">
-				<option value="Бальбо" data-id="balbo">
-				<option value="Брека" data-id="breka">
-				<option value="Буря" data-id="storm">
-				<option value="Гарет" data-id="garet">
-				<option value="Зараженный Крума" data-id="infected_kruma">
-				<option value="Зеркало забвения" data-id="mirror">
-				<option value="Кабрио" data-id="cabrio">
-				<option value="Каменук" data-id="kamenuk">
-				<option value="Катан" data-id="katan">
-				<option value="Кельсус" data-id="kelsus">
-				<option value="Корун" data-id="korun">
-				<option value="Ландор" data-id="landor">
-				<option value="Крума" data-id="kruma">
-				<option value="Валакас" data-id="valakas">
-			</datalist>
+			<div class="custom-select">
+				<input type="text" id="hero" autocomplete="off" oninput="filterHeroes(this.value)">
+				<div id="hero-suggestions" class="suggestions-list"></div>
+			</div>
 		</div>
 		<div class="form-group">
 			<label for="deathTime">Время смерти:</label>
@@ -371,27 +428,53 @@
 
 		function filterHeroes(value) {
 			const input = document.getElementById('hero');
+			const suggestionsList = document.getElementById('hero-suggestions');
 			const searchTerm = value.toLowerCase().trim();
 
-			if (!searchTerm) return;
+			if (!searchTerm) {
+				suggestionsList.style.display = 'none';
+				return;
+			}
 
-			// Получаем все имена героев
 			const heroNames = Object.keys(heroesMap);
-
-			// Фильтруем героев по введенному значению, игнорируя регистр
 			const matches = heroNames.filter(name =>
 				name.toLowerCase().startsWith(searchTerm)
 			);
 
-			// Если есть только одно совпадение, даже неполное
 			if (matches.length === 1) {
-				const match = matches[0];
-				input.value = match;
-				setTimeout(() => {
-					input.blur();
-				}, 100);
+				input.value = matches[0];
+				suggestionsList.style.display = 'none';
+				input.blur();
+				return;
 			}
+
+			suggestionsList.innerHTML = '';
+			matches.slice(0, 5).forEach(name => {
+				const div = document.createElement('div');
+				div.className = 'suggestion-item';
+				div.textContent = name;
+				div.onclick = () => {
+					input.value = name;
+					suggestionsList.style.display = 'none';
+					input.blur();
+				};
+				suggestionsList.appendChild(div);
+			});
+
+			suggestionsList.style.display = matches.length ? 'block' : 'none';
 		}
+
+		document.getElementById('hero').addEventListener('keydown', function (e) {
+			const suggestionsList = document.getElementById('hero-suggestions');
+			const suggestions = suggestionsList.getElementsByClassName('suggestion-item');
+
+			if (e.key === 'Enter' && suggestions.length === 1) {
+				e.preventDefault();
+				this.value = suggestions[0].textContent;
+				suggestionsList.style.display = 'none';
+				this.blur();
+			}
+		});
 
 		function calculateRespawn() {
 			const heroInput = document.getElementById('hero');
