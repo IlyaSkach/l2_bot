@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="ru">
+
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>Калькулятор респауна L2</title>
+	<style>
+		:root {
+			--primary-color: #8b0000;
+			--secondary-color: #4a0404;
+			--text-color: #d4af37;
+			--bg-color: #1a1a1a;
+		}
+
+		* {
+			margin: 0;
+			padding: 0;
+			box-sizing: border-box;
+		}
+
+		body {
+			font-family: 'Times New Roman', serif;
+			background-color: var(--bg-color);
+			color: var(--text-color);
+			min-height: 100vh;
+			padding: 20px;
+			background-image: linear-gradient(rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.7)),
+				url('https://i.imgur.com/ZFEtReD.jpg');
+			background-size: cover;
+			background-position: center;
+			background-attachment: fixed;
+		}
+
+		.container {
+			max-width: 100%;
+			width: 400px;
+			margin: 0 auto;
+			padding: 20px;
+			background: rgba(0, 0, 0, 0.8);
+			border: 2px solid var(--primary-color);
+			border-radius: 10px;
+			box-shadow: 0 0 20px rgba(139, 0, 0, 0.3);
+		}
+
+		h1 {
+			text-align: center;
+			color: var(--text-color);
+			margin-bottom: 30px;
+			text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+			font-size: 24px;
+		}
+
+		.form-group {
+			margin-bottom: 20px;
+		}
+
+		label {
+			display: block;
+			margin-bottom: 8px;
+			color: var(--text-color);
+			font-size: 16px;
+		}
+
+		select,
+		input {
+			width: 100%;
+			padding: 12px;
+			background-color: rgba(0, 0, 0, 0.6);
+			border: 1px solid var(--primary-color);
+			color: var(--text-color);
+			border-radius: 5px;
+			font-size: 16px;
+			appearance: none;
+		}
+
+		select {
+			cursor: pointer;
+			background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%23d4af37'%3E%3Cpath d='M6 9L0 0h12'/%3E%3C/svg%3E");
+			background-repeat: no-repeat;
+			background-position: right 12px center;
+			padding-right: 30px;
+		}
+
+		select:focus,
+		input:focus {
+			outline: none;
+			border-color: var(--text-color);
+		}
+
+		button {
+			width: 100%;
+			padding: 12px;
+			background-color: var(--primary-color);
+			color: var(--text-color);
+			border: none;
+			border-radius: 5px;
+			cursor: pointer;
+			font-size: 16px;
+			font-weight: bold;
+			text-transform: uppercase;
+			transition: background-color 0.3s;
+		}
+
+		button:hover {
+			background-color: var(--secondary-color);
+		}
+
+		.result {
+			margin-top: 20px;
+			padding: 15px;
+			background-color: rgba(0, 0, 0, 0.6);
+			border: 1px solid var(--primary-color);
+			border-radius: 5px;
+			text-align: center;
+			font-size: 18px;
+		}
+
+		.time-input-container {
+			display: flex;
+			flex-direction: column;
+			gap: 10px;
+		}
+
+		.time-controls {
+			display: flex;
+			gap: 10px;
+		}
+
+		.time-btn {
+			padding: 8px;
+			font-size: 14px;
+			flex: 1;
+			background-color: var(--secondary-color);
+		}
+
+		.now-btn {
+			background-color: var(--primary-color);
+		}
+
+		@media (max-width: 480px) {
+			.container {
+				width: 100%;
+				padding: 15px;
+			}
+
+			h1 {
+				font-size: 20px;
+			}
+
+			select,
+			input,
+			button {
+				font-size: 14px;
+				padding: 10px;
+			}
+
+			.result {
+				font-size: 16px;
+			}
+
+			.time-btn {
+				padding: 12px 8px;
+				font-size: 14px;
+			}
+		}
+	</style>
+</head>
+
+<body>
+	<div class="container">
+		<h1>Калькулятор респауна L2</h1>
+		<div class="form-group">
+			<label for="hero">Выберите героя:</label>
+			<select id="hero">
+				<option value="">Выберите...</option>
+				<option value="black_lily">Черная лилия</option>
+				<option value="kruma">Крума</option>
+				<option value="valakas">Валакас</option>
+			</select>
+		</div>
+		<div class="form-group">
+			<label for="deathTime">Время смерти:</label>
+			<div class="time-input-container">
+				<input type="time" id="deathTime">
+				<button class="time-btn now-btn" onclick="setCurrentTime()">Сейчас</button>
+				<div class="time-controls">
+					<button class="time-btn" onclick="adjustTime(-5)">-5 мин</button>
+					<button class="time-btn" onclick="adjustTime(5)">+5 мин</button>
+				</div>
+			</div>
+		</div>
+		<button onclick="calculateRespawn()">Узнать респаун</button>
+		<div id="result" class="result"></div>
+	</div>
+
+	<script>
+		const respawnTimes = {
+			'black_lily': 4, // часы
+			'kruma': 6, // 
+			'valakas': 8 // 10 дней
+		};
+
+		function calculateRespawn() {
+			const heroSelect = document.getElementById('hero');
+			const deathTimeInput = document.getElementById('deathTime');
+			const resultDiv = document.getElementById('result');
+
+			if (!heroSelect.value || !deathTimeInput.value) {
+				resultDiv.textContent = 'Пожалуйста, выберите героя и время смерти';
+				return;
+			}
+
+			const [hours, minutes] = deathTimeInput.value.split(':');
+			const deathTime = new Date();
+			deathTime.setHours(parseInt(hours));
+			deathTime.setMinutes(parseInt(minutes));
+
+			const respawnHours = respawnTimes[heroSelect.value];
+			const respawnTime = new Date(deathTime.getTime() + respawnHours * 60 * 60 * 1000);
+
+			resultDiv.textContent = `Респаун ${heroSelect.options[heroSelect.selectedIndex].text} произойдет в ${respawnTime.getHours().toString().padStart(2, '0')}:${respawnTime.getMinutes().toString().padStart(2, '0')}`;
+		}
+
+		function setCurrentTime() {
+			const now = new Date();
+			const hours = now.getHours().toString().padStart(2, '0');
+			const minutes = now.getMinutes().toString().padStart(2, '0');
+			document.getElementById('deathTime').value = `${hours}:${minutes}`;
+		}
+
+		function adjustTime(minutes) {
+			const timeInput = document.getElementById('deathTime');
+			if (!timeInput.value) {
+				setCurrentTime();
+				return;
+			}
+
+			const [hours, mins] = timeInput.value.split(':');
+			const date = new Date();
+			date.setHours(parseInt(hours));
+			date.setMinutes(parseInt(mins) + minutes);
+
+			const newHours = date.getHours().toString().padStart(2, '0');
+			const newMinutes = date.getMinutes().toString().padStart(2, '0');
+			timeInput.value = `${newHours}:${newMinutes}`;
+		}
+	</script>
+</body>
+
+</html>
