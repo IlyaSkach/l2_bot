@@ -164,6 +164,62 @@
 				font-size: 14px;
 			}
 		}
+
+		.history-container {
+			margin-top: 30px;
+			border-top: 1px solid var(--primary-color);
+			padding-top: 20px;
+		}
+
+		.history-container h2 {
+			font-size: 18px;
+			margin-bottom: 15px;
+			color: var(--text-color);
+			text-align: center;
+		}
+
+		.history-list {
+			display: flex;
+			flex-direction: column;
+			gap: 10px;
+		}
+
+		.history-item {
+			background-color: rgba(0, 0, 0, 0.6);
+			border: 1px solid var(--primary-color);
+			border-radius: 5px;
+			padding: 10px;
+			display: flex;
+			justify-content: space-between;
+			align-items: center;
+		}
+
+		.history-item .boss-name {
+			color: var(--text-color);
+			font-weight: bold;
+		}
+
+		.history-item .time-info {
+			font-size: 14px;
+		}
+
+		.delete-btn {
+			background-color: transparent;
+			color: #ff4444;
+			border: none;
+			padding: 5px;
+			cursor: pointer;
+			font-size: 12px;
+			margin-left: 10px;
+		}
+
+		@media (max-width: 480px) {
+			.history-item {
+				flex-direction: column;
+				text-align: center;
+				gap: 5px;
+			}
+		}
 	</style>
 </head>
 
@@ -192,14 +248,22 @@
 		</div>
 		<button onclick="calculateRespawn()">Узнать респаун</button>
 		<div id="result" class="result"></div>
+
+		<div class="history-container">
+			<h2>История респаунов</h2>
+			<div id="respawnHistory" class="history-list"></div>
+		</div>
 	</div>
 
 	<script>
 		const respawnTimes = {
-			'black_lily': 4, // часы
-			'kruma': 6, // 
-			'valakas': 8 // 10 дней
+			'black_lily': 4,
+			'kruma': 6,
+			'valakas': 8
 		};
+
+		// Загрузка истории при запуске
+		document.addEventListener('DOMContentLoaded', loadHistory);
 
 		function calculateRespawn() {
 			const heroSelect = document.getElementById('hero');
@@ -219,7 +283,65 @@
 			const respawnHours = respawnTimes[heroSelect.value];
 			const respawnTime = new Date(deathTime.getTime() + respawnHours * 60 * 60 * 1000);
 
-			resultDiv.textContent = `Респаун ${heroSelect.options[heroSelect.selectedIndex].text} произойдет в ${respawnTime.getHours().toString().padStart(2, '0')}:${respawnTime.getMinutes().toString().padStart(2, '0')}`;
+			const respawnData = {
+				bossName: heroSelect.options[heroSelect.selectedIndex].text,
+				bossId: heroSelect.value,
+				deathTime: deathTime.toISOString(),
+				respawnTime: respawnTime.toISOString(),
+				timestamp: new Date().getTime()
+			};
+
+			saveRespawn(respawnData);
+			loadHistory();
+
+			resultDiv.textContent = `Респаун ${respawnData.bossName} произойдет в ${respawnTime.getHours().toString().padStart(2, '0')}:${respawnTime.getMinutes().toString().padStart(2, '0')}`;
+		}
+
+		function saveRespawn(respawnData) {
+			let history = JSON.parse(localStorage.getItem('respawnHistory') || '[]');
+			// Удаляем предыдущую запись о том же боссе, если она есть
+			history = history.filter(item => item.bossId !== respawnData.bossId);
+			// Добавляем новую запись
+			history.push(respawnData);
+			// Сортируем по времени респауна
+			history.sort((a, b) => new Date(a.respawnTime) - new Date(b.respawnTime));
+			localStorage.setItem('respawnHistory', JSON.stringify(history));
+		}
+
+		function loadHistory() {
+			const historyDiv = document.getElementById('respawnHistory');
+			const history = JSON.parse(localStorage.getItem('respawnHistory') || '[]');
+
+			historyDiv.innerHTML = '';
+
+			if (history.length === 0) {
+				historyDiv.innerHTML = '<div class="history-item">Нет сохраненных респаунов</div>';
+				return;
+			}
+
+			history.forEach(item => {
+				const deathTime = new Date(item.deathTime);
+				const respawnTime = new Date(item.respawnTime);
+
+				const historyItem = document.createElement('div');
+				historyItem.className = 'history-item';
+				historyItem.innerHTML = `
+					<span class="boss-name">${item.bossName}</span>
+					<span class="time-info">
+						Смерть: ${deathTime.getHours().toString().padStart(2, '0')}:${deathTime.getMinutes().toString().padStart(2, '0')} | 
+						Респаун: ${respawnTime.getHours().toString().padStart(2, '0')}:${respawnTime.getMinutes().toString().padStart(2, '0')}
+						<button class="delete-btn" onclick="deleteRespawn('${item.bossId}')">✕</button>
+					</span>
+				`;
+				historyDiv.appendChild(historyItem);
+			});
+		}
+
+		function deleteRespawn(bossId) {
+			let history = JSON.parse(localStorage.getItem('respawnHistory') || '[]');
+			history = history.filter(item => item.bossId !== bossId);
+			localStorage.setItem('respawnHistory', JSON.stringify(history));
+			loadHistory();
 		}
 
 		function setCurrentTime() {
